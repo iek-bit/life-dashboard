@@ -1659,6 +1659,13 @@ function screenToWorld(clientX, clientY) {
   };
 }
 
+function getZoneFromEventTarget(target) {
+  const zoneEl = target?.closest?.(".zone");
+  if (!zoneEl) return null;
+  const zoneId = zoneEl.dataset.zoneId;
+  return zoneData.find((zone) => zone.id === zoneId) || null;
+}
+
 function canScrollElement(element, deltaY) {
   if (!element) return false;
   const canScroll = element.scrollHeight > element.clientHeight + 1;
@@ -1691,11 +1698,20 @@ function getWheelSessionMode(target, deltaY, now) {
   return wheelSession.mode;
 }
 
-function zoomAt(clientX, clientY, factor) {
+function zoomAt(clientX, clientY, factor, target) {
   const before = screenToWorld(clientX, clientY);
-  camera.targetScale = clamp(camera.targetScale * factor, settings.minScale, settings.maxScale);
-  camera.targetX = clientX - before.x * camera.targetScale;
-  camera.targetY = clientY - before.y * camera.targetScale;
+  const nextScale = clamp(camera.targetScale * factor, settings.minScale, settings.maxScale);
+  const hoveredZone = getZoneFromEventTarget(target);
+  camera.targetScale = nextScale;
+
+  if (hoveredZone) {
+    camera.targetX = viewport.clientWidth / 2 - (hoveredZone.x + hoveredZone.width / 2) * nextScale;
+    camera.targetY = viewport.clientHeight / 2 - (hoveredZone.y + hoveredZone.height / 2) * nextScale;
+  } else {
+    camera.targetX = clientX - before.x * nextScale;
+    camera.targetY = clientY - before.y * nextScale;
+  }
+
   clampCameraTargets();
   camera.lastInputAt = performance.now();
   camera.activeSnapZone = null;
@@ -1873,12 +1889,12 @@ viewport.addEventListener("wheel", (event) => {
   }
   event.preventDefault();
   const factor = event.deltaY > 0 ? 0.92 : 1.08;
-  zoomAt(event.clientX, event.clientY, factor);
+  zoomAt(event.clientX, event.clientY, factor, event.target);
 }, { passive: false });
 
 viewport.addEventListener("dblclick", (event) => {
   if (event.target.closest(".zone")) return;
-  zoomAt(event.clientX, event.clientY, 1.18);
+  zoomAt(event.clientX, event.clientY, 1.18, event.target);
 });
 
 document.getElementById("reset-view").addEventListener("click", () => {
