@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="google-config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg: #081018;
+  --bg-elevated: rgba(10, 20, 30, 0.92);
+  --bg-panel: rgba(15, 27, 41, 0.86);
+  --bg-soft: rgba(28, 44, 63, 0.58);
+  --line: rgba(158, 188, 214, 0.16);
+  --line-strong: rgba(158, 188, 214, 0.3);
+  --text: #eef5fb;
+  --text-dim: #97aabd;
+  --text-muted: #6f8295;
+  --blue: #7bc6ff;
+  --green: #8be28b;
+  --amber: #ffd36c;
+  --red: #ff8c7a;
+  --teal: #6ee7d8;
+  --violet: #a5a3ff;
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 30px 60px rgba(0, 0, 0, 0.28);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: "Space Grotesk", sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(123, 198, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, #09131d 0%, #071019 100%);
+  color: var(--text);
+}
+
+.app-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.brand-kicker {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.world-card h1 {
+  font-size: 32px;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  margin-bottom: 8px;
+}
+
+.world-card p {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.status-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.status-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.status-line strong,
+.status-line span:last-child {
+  color: var(--text);
+}
+
+.mono {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.viewport.dragging {
+  cursor: grabbing;
+}
+
+.world {
+  position: absolute;
+  width: 3600px;
+  height: 2360px;
+  transform-origin: 0 0;
+  background:
+    linear-gradient(rgba(130, 165, 197, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130, 165, 197, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(130, 165, 197, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130, 165, 197, 0.03) 1px, transparent 1px);
+  background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px;
+  background-position: -1px -1px;
+}
+
+.world::before {
+  content: "";
+  position: absolute;
+  inset: 80px;
+  border: 1px solid rgba(158, 188, 214, 0.08);
+  border-radius: 44px;
+  pointer-events: none;
+}
+
+.world-card {
+  position: absolute;
+  background: rgba(6, 11, 18, 0.84);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+
+.world-card.small {
+  padding: 18px 20px;
+}
+
+.zone {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(16, 28, 41, 0.88), rgba(10, 18, 28, 0.88));
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.zone.active {
+  border-color: rgba(123, 198, 255, 0.46);
+  box-shadow: 0 34px 72px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(123, 198, 255, 0.12);
+}
+
+.zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid rgba(158, 188, 214, 0.08);
+}
+
+.zone-title-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.zone-kicker {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+}
+
+.zone h2 {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.zone-summary {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.zone-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.zone-body {
+  flex: 1;
+  min-height: 0;
+  padding: 22px 24px 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card,
+.panel,
+.item,
+.note-area,
+.settings-card {
+  background: var(--bg-soft);
+  border: 1px solid rgba(158, 188, 214, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.metric-card {
+  padding: 14px;
+}
+
+.metric-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+
+.metric-sub {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.panel-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel {
+  padding: 16px;
+}
+
+.panel-title {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.item-list {
+  display: grid;
+  gap: 8px;
+}
+
+.item {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.item-main {
+  display: grid;
+  gap: 4px;
+}
+
+.item-name {
+  font-size: 14px;
+}
+
+.item-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.item-tag {
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.bar-list {
+  display: grid;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  gap: 6px;
+}
+
+.bar-top {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.mini-chart {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mini-chart .col {
+  flex: 1;
+  background: linear-gradient(180deg, rgba(123, 198, 255, 0.9), rgba(123, 198, 255, 0.18));
+  border-radius: 12px 12px 4px 4px;
+  min-height: 12px;
+}
+
+.notes-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.note-area {
+  min-height: 240px;
+  width: 100%;
+  resize: none;
+  padding: 16px;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.45;
+  outline: none;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 14px;
+}
+
+.settings-card {
+  padding: 16px;
+}
+
+.settings-card h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.settings-card + .settings-card {
+  margin-top: 12px;
+}
+
+.toggle-list {
+  display: grid;
+  gap: 10px;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.switch {
+  appearance: none;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
+  position: relative;
+  cursor: pointer;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.18s ease;
+}
+
+.switch:checked {
+  background: rgba(123, 198, 255, 0.42);
+  border-color: rgba(123, 198, 255, 0.4);
+}
+
+.switch:checked::after {
+  transform: translateX(18px);
+}
+
+.range-row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.range-row label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+.integration-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.integration-state {
+  display: grid;
+  gap: 8px;
+}
+
+.integration-copy {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.integration-status {
+  display: grid;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.integration-status strong {
+  color: var(--text);
+}
+
+.integration-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.action-btn {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.action-btn.primary {
+  background: rgba(123, 198, 255, 0.18);
+  border-color: rgba(123, 198, 255, 0.32);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.service-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 7px 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.service-pill.on {
+  color: var(--text);
+  border-color: rgba(139, 226, 139, 0.34);
+  background: rgba(139, 226, 139, 0.12);
+}
+
+.service-pill.off {
+  border-color: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+}
+
+.service-pill.pending {
+  border-color: rgba(255, 211, 108, 0.24);
+  background: rgba(255, 211, 108, 0.12);
+}
+
+.zone-body::-webkit-scrollbar,
+.note-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.zone-body::-webkit-scrollbar-thumb,
+.note-area::-webkit-scrollbar-thumb {
+  background: rgba(158, 188, 214, 0.22);
+  border-radius: 999px;
+}
+
+.zone[data-stage="overview"] .zone-body .detail-only,
+.zone[data-stage="overview"] .zone-body .preview-only,
+.zone[data-stage="preview"] .zone-body .detail-only {
+  display: none;
+}
+
+.zone[data-stage="overview"] .zone-header {
+  padding-bottom: 22px;
+}
+
+.zone[data-stage="overview"] h2 {
+  font-size: 22px;
+}
+
+.zone[data-stage="overview"] .zone-body {
+  padding-top: 18px;
+}
+
+.overview-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.overview-stat {
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 12px;
+}
+
+.overview-stat strong {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.overview-stat span {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.legend {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 10;
+}
+
+.legend-chip {
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(6, 11, 18, 0.82);
+  color: var(--text-dim);
+  font-size: 12px;
+  backdrop-filter: blur(16px);
+}
+
+.focus-btn {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.zone.hidden {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .world-card h1 {
+    font-size: 28px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="viewport" id="viewport">
+    <div class="world" id="world"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-chip">Drag to pan</div>
+    <div class="legend-chip">Scroll to zoom</div>
+    <div class="legend-chip">Pause near a zone for soft snap</div>
+    <button class="focus-btn" id="reset-view">Reset view</button>
+  </div>
+</div>
+
+<template id="zone-template">
+  <section class="zone">
+    <div class="zone-header">
+      <div class="zone-title-wrap">
+        <div class="zone-kicker">Zone</div>
+        <h2></h2>
+        <div class="zone-summary"></div>
+      </div>
+      <div class="zone-pill"></div>
+    </div>
+    <div class="zone-body"></div>
+  </section>
+</template>
+
+<script>
+const world = document.getElementById("world");
+const viewport = document.getElementById("viewport");
+const zoneTemplate = document.getElementById("zone-template");
+let viewStateEl;
+let focusZoneEl;
+let zoomReadoutEl;
+let clockEl;
+
+const WORLD = { width: 3600, height: 2360 };
+const NOTES_KEY = "life-dashboard-notes";
+const SETTINGS_KEY = "life-dashboard-settings";
+const PAN_PADDING = 280;
+const APP_CONFIG = window.LIFE_DASHBOARD_CONFIG || {};
+const GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/tasks.readonly",
+  "https://www.googleapis.com/auth/gmail.readonly"
+];
+const GOOGLE_CONFIG = {
+  clientId: APP_CONFIG.google?.clientId || "",
+  authCodeEndpoint: APP_CONFIG.google?.authCodeEndpoint || "/api/auth/google/code",
+  sessionEndpoint: APP_CONFIG.google?.sessionEndpoint || "/api/auth/session",
+  bootstrapEndpoint: APP_CONFIG.google?.bootstrapEndpoint || "/api/google/bootstrap",
+  logoutEndpoint: APP_CONFIG.google?.logoutEndpoint || "/api/auth/logout",
+  scopes: APP_CONFIG.google?.scopes || GOOGLE_SCOPES
+};
+
+const zoneData = [
+  {
+    id: "tasks",
+    label: "Tasks",
+    x: 160,
+    y: 320,
+    width: 720,
+    height: 560,
+    snapZoom: 1.25,
+    summary: "Priority queue and progress markers",
+    pill: "7 active",
+    overview: [
+      ["4", "due today"],
+      ["2", "blocked"],
+      ["81%", "week pace"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Due today</div><div class="metric-value">4</div><div class="metric-sub">2 high priority</div></div>
+        <div class="metric-card"><div class="metric-label">Completed</div><div class="metric-value">12</div><div class="metric-sub">Best day this week</div></div>
+        <div class="metric-card"><div class="metric-label">Focus block</div><div class="metric-value mono">2:30</div><div class="metric-sub">Deep work left</div></div>
+      </div>
+      <div class="panel-grid two preview-only">
+        <div class="panel">
+          <div class="panel-title">In progress</div>
+          <div class="item-list" id="tasks-live-list">
+            <div class="item"><div class="item-main"><div class="item-name">Ship spatial dashboard pass</div><div class="item-sub">Interaction model</div></div><div class="item-tag">Today</div></div>
+            <div class="item"><div class="item-main"><div class="item-name">Review finance import edge cases</div><div class="item-sub">Engineering</div></div><div class="item-tag">13:00</div></div>
+            <div class="item"><div class="item-main"><div class="item-name">Prepare weekly recap</div><div class="item-sub">Ops</div></div><div class="item-tag">Drafting</div></div>
+          </div>
+        </div>
+        <div class="panel detail-only">
+          <div class="panel-title">Momentum</div>
+          <div class="bar-list">
+            <div class="bar-row"><div class="bar-top"><span>Product</span><span>88%</span></div><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--blue)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Admin</span><span>43%</span></div><div class="bar-track"><div class="bar-fill" style="width:43%;background:var(--amber)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Personal</span><span>61%</span></div><div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--green)"></div></div></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "calendar",
+    label: "Calendar",
+    x: 990,
+    y: 300,
+    width: 650,
+    height: 520,
+    snapZoom: 1.2,
+    summary: "Schedule, meetings, and day shape",
+    pill: "5 events",
+    overview: [
+      ["09:00", "first meeting"],
+      ["15:00", "planning"],
+      ["17:30", "gym"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Next up</div><div class="metric-value mono">09:00</div><div class="metric-sub">Team standup</div></div>
+        <div class="metric-card"><div class="metric-label">Focus window</div><div class="metric-value mono">10:00-11:15</div><div class="metric-sub">Uninterrupted</div></div>
+        <div class="metric-card"><div class="metric-label">Load</div><div class="metric-value">72%</div><div class="metric-sub">Balanced day</div></div>
+      </div>
+      <div class="panel preview-only">
+        <div class="panel-title">Today</div>
+        <div class="item-list" id="calendar-event-list">
+          <div class="item"><div class="item-main"><div class="item-name">Team standup</div><div class="item-sub">Daily sync</div></div><div class="item-tag mono">09:00</div></div>
+          <div class="item"><div class="item-main"><div class="item-name">Design review</div><div class="item-sub">Spatial dashboard concept</div></div><div class="item-tag mono">11:30</div></div>
+          <div class="item"><div class="item-main"><div class="item-name">Product planning</div><div class="item-sub">Roadmap refinement</div></div><div class="item-tag mono">15:00</div></div>
+          <div class="item detail-only"><div class="item-main"><div class="item-name">Gym session</div><div class="item-sub">Upper body</div></div><div class="item-tag mono">17:30</div></div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    x: 1770,
+    y: 300,
+    width: 820,
+    height: 620,
+    snapZoom: 1.28,
+    summary: "Spending, budget pacing, and category health",
+    pill: "$1,842 spent",
+    overview: [
+      ["$1.3k", "remaining"],
+      ["48%", "food pace"],
+      ["61%", "housing pace"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Spent</div><div class="metric-value mono">$1,842</div><div class="metric-sub">of $3,200 budget</div></div>
+        <div class="metric-card"><div class="metric-label">Remaining</div><div class="metric-value mono">$1,358</div><div class="metric-sub">57% of month left</div></div>
+        <div class="metric-card"><div class="metric-label">Drift</div><div class="metric-value">+3%</div><div class="metric-sub">Slightly ahead</div></div>
+      </div>
+      <div class="panel-grid two preview-only">
+        <div class="panel">
+          <div class="panel-title">Category pacing</div>
+          <div class="bar-list">
+            <div class="bar-row"><div class="bar-top"><span>Housing</span><span>61%</span></div><div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--blue)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Food</span><span>48%</span></div><div class="bar-track"><div class="bar-fill" style="width:48%;background:var(--green)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Transport</span><span>63%</span></div><div class="bar-track"><div class="bar-fill" style="width:63%;background:var(--amber)"></div></div></div>
+            <div class="bar-row detail-only"><div class="bar-top"><span>Entertainment</span><span>33%</span></div><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--violet)"></div></div></div>
+          </div>
+        </div>
+        <div class="panel detail-only">
+          <div class="panel-title">Daily spend</div>
+          <div class="mini-chart">
+            <div class="col" style="height:28%"></div>
+            <div class="col" style="height:62%"></div>
+            <div class="col" style="height:18%"></div>
+            <div class="col" style="height:74%"></div>
+            <div class="col" style="height:40%"></div>
+            <div class="col" style="height:90%"></div>
+            <div class="col" style="height:35%"></div>
+            <div class="col" style="height:58%"></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "health",
+    label: "Health",
+    x: 1810,
+    y: 1040,
+    width: 820,
+    height: 560,
+    snapZoom: 1.18,
+    summary: "Activity, recovery, and body signals",
+    pill: "74% move",
+    overview: [
+      ["7,482", "steps"],
+      ["7h 22m", "sleep"],
+      ["72", "resting HR"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Steps</div><div class="metric-value mono">7,482</div><div class="metric-sub">12% above average</div></div>
+        <div class="metric-card"><div class="metric-label">Sleep</div><div class="metric-value mono">7h 22m</div><div class="metric-sub">18 min above baseline</div></div>
+        <div class="metric-card"><div class="metric-label">Resting HR</div><div class="metric-value">72</div><div class="metric-sub">Down 3 bpm</div></div>
+      </div>
+      <div class="panel-grid two preview-only">
+        <div class="panel">
+          <div class="panel-title">Daily rings</div>
+          <div class="bar-list">
+            <div class="bar-row"><div class="bar-top"><span>Move</span><span>74%</span></div><div class="bar-track"><div class="bar-fill" style="width:74%;background:var(--blue)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Exercise</span><span>63%</span></div><div class="bar-track"><div class="bar-fill" style="width:63%;background:var(--green)"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>Stand</span><span>88%</span></div><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--violet)"></div></div></div>
+          </div>
+        </div>
+        <div class="panel detail-only">
+          <div class="panel-title">Recovery notes</div>
+          <div class="item-list">
+            <div class="item"><div class="item-main"><div class="item-name">HRV trend up</div><div class="item-sub">Recovery improving</div></div><div class="item-tag">82</div></div>
+            <div class="item"><div class="item-main"><div class="item-name">Blood O₂ stable</div><div class="item-sub">Normal range</div></div><div class="item-tag">98%</div></div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "email",
+    label: "Inbox",
+    x: 160,
+    y: 980,
+    width: 720,
+    height: 520,
+    snapZoom: 1.18,
+    summary: "Unread flow and priority senders",
+    pill: "23 unread",
+    overview: [
+      ["5", "important"],
+      ["2", "GitHub"],
+      ["1", "family"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Unread</div><div class="metric-value">23</div><div class="metric-sub">5 priority</div></div>
+        <div class="metric-card"><div class="metric-label">Needs reply</div><div class="metric-value">8</div><div class="metric-sub">2 today</div></div>
+        <div class="metric-card"><div class="metric-label">Last clear</div><div class="metric-value mono">2d</div><div class="metric-sub">Inbox zero streak</div></div>
+      </div>
+      <div class="panel preview-only">
+        <div class="panel-title">Recent</div>
+        <div class="item-list" id="gmail-live-list">
+          <div class="item"><div class="item-main"><div class="item-name">Alex Chen</div><div class="item-sub">Design system updates</div></div><div class="item-tag mono">09:41</div></div>
+          <div class="item"><div class="item-main"><div class="item-name">GitHub</div><div class="item-sub">New PR on dashboard-v2</div></div><div class="item-tag mono">08:15</div></div>
+          <div class="item detail-only"><div class="item-main"><div class="item-name">Mom</div><div class="item-sub">Dinner Sunday?</div></div><div class="item-tag mono">Sun</div></div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "files",
+    label: "Files",
+    x: 990,
+    y: 920,
+    width: 720,
+    height: 520,
+    snapZoom: 1.16,
+    summary: "Recent docs and working materials",
+    pill: "5 recent",
+    overview: [
+      ["Q2", "report open"],
+      ["v3", "redesign file"],
+      ["2h", "since last edit"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Last opened</div><div class="metric-value">Q2</div><div class="metric-sub">Analytics report</div></div>
+        <div class="metric-card"><div class="metric-label">Shared today</div><div class="metric-value">3</div><div class="metric-sub">Drive links</div></div>
+        <div class="metric-card"><div class="metric-label">Draft count</div><div class="metric-value">11</div><div class="metric-sub">Across active folders</div></div>
+      </div>
+      <div class="panel preview-only">
+        <div class="panel-title">Recent files</div>
+        <div class="item-list">
+          <div class="item"><div class="item-main"><div class="item-name">Q2 Analytics Report.pdf</div><div class="item-sub">Modified 2h ago</div></div><div class="item-tag">PDF</div></div>
+          <div class="item"><div class="item-main"><div class="item-name">App Redesign v3</div><div class="item-sub">Figma</div></div><div class="item-tag">FIG</div></div>
+          <div class="item detail-only"><div class="item-main"><div class="item-name">Budget Tracker 2025</div><div class="item-sub">Updated yesterday</div></div><div class="item-tag">XLS</div></div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "weather",
+    label: "Weather",
+    x: 2860,
+    y: 300,
+    width: 500,
+    height: 420,
+    snapZoom: 1.1,
+    summary: "Conditions, comfort, and day planning",
+    pill: "72° partly cloudy",
+    overview: [
+      ["72°", "now"],
+      ["15 mph", "wind"],
+      ["0%", "rain"]
+    ],
+    detail: `
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Now</div><div class="metric-value">72°</div><div class="metric-sub">Partly cloudy</div></div>
+        <div class="metric-card"><div class="metric-label">High / low</div><div class="metric-value mono">79 / 61</div><div class="metric-sub">Comfortable</div></div>
+        <div class="metric-card"><div class="metric-label">Rain</div><div class="metric-value">0%</div><div class="metric-sub">Clear evening</div></div>
+      </div>
+      <div class="panel preview-only">
+        <div class="panel-title">Later today</div>
+        <div class="item-list">
+          <div class="item"><div class="item-main"><div class="item-name">Afternoon</div><div class="item-sub">Light clouds, bright</div></div><div class="item-tag">76°</div></div>
+          <div class="item detail-only"><div class="item-main"><div class="item-name">Evening</div><div class="item-sub">Cooler air, gym weather</div></div><div class="item-tag">68°</div></div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    x: 2860,
+    y: 780,
+    width: 500,
+    height: 760,
+    snapZoom: 1.12,
+    summary: "Scratchpad for loose thinking",
+    pill: "Persistent",
+    overview: [
+      ["1", "canvas memo"],
+      ["3", "idea bullets"],
+      ["live", "saved"]
+    ],
+    detail: `
+      <div class="notes-wrap preview-only">
+        <div class="panel">
+          <div class="panel-title">Scratchpad</div>
+          <textarea class="note-area" id="notes-area" placeholder="Capture ideas, reminders, fragments, or a whole plan here."></textarea>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    x: 1160,
+    y: 1680,
+    width: 1080,
+    height: 460,
+    snapZoom: 1.06,
+    summary: "Choose visible zones and tune camera behavior",
+    pill: "Customizable",
+    overview: [
+      ["9", "zones"],
+      ["soft", "snap mode"],
+      ["all", "map visible"]
+    ],
+    detail: `
+      <div class="settings-grid preview-only">
+        <div class="settings-card">
+          <h3>Visible zones</h3>
+          <div class="toggle-list" id="zone-toggles"></div>
+          <div class="settings-card" style="margin-top:14px;">
+            <h3>Google</h3>
+            <div class="integration-stack">
+              <div class="integration-copy" id="google-auth-copy">Connect Google Calendar, Tasks, and Gmail using Google's popup sign-in flow. Passwords are never entered into this dashboard.</div>
+              <div class="integration-state" id="google-auth-state"></div>
+              <div class="service-pills" id="google-service-pills"></div>
+              <div class="integration-actions">
+                <button class="action-btn primary" id="google-connect-btn" type="button">Connect Google</button>
+                <button class="action-btn" id="google-refresh-btn" type="button">Refresh data</button>
+                <button class="action-btn" id="google-signout-btn" type="button">Disconnect</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card detail-only">
+          <h3>Interaction</h3>
+          <div class="range-row">
+            <label for="snap-delay">Snap delay</label>
+            <input id="snap-delay" type="range" min="180" max="1000" step="20" value="320">
+          </div>
+          <div class="range-row">
+            <label for="snap-strength">Snap strength</label>
+            <input id="snap-strength" type="range" min="0.08" max="0.32" step="0.01" value="0.2">
+          </div>
+          <div class="range-row">
+            <label for="max-zoom-out">Max zoom out</label>
+            <input id="max-zoom-out" type="range" min="0.24" max="0.8" step="0.01" value="0.32">
+          </div>
+        </div>
+      </div>
+    `
+  }
+];
+
+const settings = {
+  hiddenZones: [],
+  snapDelay: 320,
+  snapStrength: 0.2,
+  minScale: 0.32,
+  maxScale: 1.9
+};
+
+const camera = {
+  x: 0,
+  y: 0,
+  scale: settings.minScale,
+  targetX: 0,
+  targetY: 0,
+  targetScale: settings.minScale,
+  dragging: false,
+  movedDuringDrag: false,
+  lastInputAt: performance.now(),
+  activeSnapZone: null
+};
+
+const wheelSession = {
+  mode: null,
+  lastAt: 0
+};
+
+const googleState = {
+  configured: Boolean(GOOGLE_CONFIG.clientId),
+  loading: false,
+  signedIn: false,
+  clientReady: false,
+  authReady: false,
+  profile: null,
+  lastSync: null,
+  error: "",
+  codeClient: null,
+  services: {
+    calendar: false,
+    tasks: false,
+    gmail: false,
+    fit: false
+  }
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed.minScale === 0.46) parsed.minScale = 0.32;
+    if (parsed.snapDelay === 650) parsed.snapDelay = 320;
+    if (parsed.snapStrength === 0.1) parsed.snapStrength = 0.2;
+    Object.assign(settings, parsed);
+  } catch (error) {
+    console.warn("Failed to load dashboard settings", error);
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatRelativeTime(dateString) {
+  if (!dateString) return "Pending";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Pending";
+  return date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function setZoneHeader(zoneId, { summary, pill, overview } = {}) {
+  const zone = world.querySelector(`[data-zone-id="${zoneId}"]`);
+  if (!zone) return;
+  if (summary) zone.querySelector(".zone-summary").textContent = summary;
+  if (pill) zone.querySelector(".zone-pill").textContent = pill;
+  if (overview) {
+    const strip = zone.querySelector(".overview-strip");
+    if (strip) {
+      strip.innerHTML = "";
+      overview.forEach(([value, label]) => {
+        const stat = document.createElement("div");
+        stat.className = "overview-stat";
+        stat.innerHTML = `<strong class="mono">${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span>`;
+        strip.appendChild(stat);
+      });
+    }
+  }
+}
+
+function renderItemList(targetId, items, emptyMessage) {
+  const list = document.getElementById(targetId);
+  if (!list) return;
+  if (!items?.length) {
+    list.innerHTML = `<div class="item"><div class="item-main"><div class="item-name">${escapeHtml(emptyMessage)}</div><div class="item-sub">No synced items yet</div></div><div class="item-tag">--</div></div>`;
+    return;
+  }
+  list.innerHTML = items.map((item) => `
+    <div class="item">
+      <div class="item-main">
+        <div class="item-name">${escapeHtml(item.title)}</div>
+        <div class="item-sub">${escapeHtml(item.subtitle || "")}</div>
+      </div>
+      <div class="item-tag ${item.mono ? "mono" : ""}">${escapeHtml(item.tag || "--")}</div>
+    </div>
+  `).join("");
+}
+
+function renderGoogleServicePills() {
+  const pills = document.getElementById("google-service-pills");
+  if (!pills) return;
+  const entries = [
+    ["calendar", "Calendar"],
+    ["tasks", "Tasks"],
+    ["gmail", "Gmail"],
+    ["fit", "Fit later"]
+  ];
+  pills.innerHTML = entries.map(([key, label]) => {
+    const status = googleState.services[key] ? "on" : key === "fit" ? "pending" : "off";
+    const text = googleState.services[key] ? `${label} connected` : key === "fit" ? `${label} not wired` : `${label} pending`;
+    return `<div class="service-pill ${status}">${escapeHtml(text)}</div>`;
+  }).join("");
+}
+
+function updateGoogleStatusCard() {
+  const statusEl = document.getElementById("google-connection-status");
+  const accountEl = document.getElementById("google-account-label");
+  if (statusEl) {
+    if (googleState.loading) statusEl.textContent = "Connecting...";
+    else if (googleState.signedIn) statusEl.textContent = "Connected";
+    else if (googleState.configured) statusEl.textContent = "Ready";
+    else statusEl.textContent = "Not configured";
+  }
+  if (accountEl) {
+    accountEl.textContent = googleState.profile?.email || (googleState.configured ? "Awaiting sign-in" : "Demo mode");
+  }
+}
+
+function renderGoogleAuthState() {
+  const container = document.getElementById("google-auth-state");
+  const copy = document.getElementById("google-auth-copy");
+  const connectBtn = document.getElementById("google-connect-btn");
+  const refreshBtn = document.getElementById("google-refresh-btn");
+  const signoutBtn = document.getElementById("google-signout-btn");
+  if (!container || !copy || !connectBtn || !refreshBtn || !signoutBtn) return;
+
+  let headline = "Google integration is not configured yet.";
+  let detail = "Add your Google OAuth client ID and backend endpoints in google-config.js, then serve this app over http://localhost or https.";
+  if (window.location.protocol === "file:") {
+    detail = "Google OAuth will not work from file://. Use a local web server such as http://localhost.";
+  } else if (googleState.loading) {
+    headline = "Connecting to Google...";
+    detail = "Completing secure sign-in and preparing data sync.";
+  } else if (googleState.signedIn) {
+    headline = `Signed in as ${googleState.profile?.name || googleState.profile?.email || "Google user"}`;
+    detail = googleState.lastSync
+      ? `Last sync ${formatRelativeTime(googleState.lastSync)}. Calendar, Tasks, and Gmail can now populate their zones from the backend bootstrap payload.`
+      : "Connection established. Run a refresh to fetch the latest Workspace data.";
+  } else if (googleState.configured) {
+    headline = "Google sign-in is ready.";
+    detail = "Users will authenticate with Google's popup flow, then your backend will exchange the auth code for tokens and create a session.";
+  }
+
+  if (googleState.error) detail = `${detail} Error: ${googleState.error}`;
+
+  copy.textContent = detail;
+  container.innerHTML = `
+    <div class="integration-status"><strong>${escapeHtml(headline)}</strong></div>
+    <div class="integration-status">
+      <span>Flow: Google Identity Services popup + backend auth-code exchange</span>
+      <span>Scopes: Calendar read, Tasks read, Gmail read, basic profile</span>
+    </div>
+  `;
+
+  connectBtn.disabled = googleState.loading || !googleState.configured || window.location.protocol === "file:";
+  refreshBtn.disabled = googleState.loading || !googleState.signedIn;
+  signoutBtn.disabled = googleState.loading || !googleState.signedIn;
+  updateGoogleStatusCard();
+  renderGoogleServicePills();
+}
+
+function applyGoogleBootstrap(payload) {
+  if (!payload) return;
+  googleState.profile = payload.profile || googleState.profile;
+  googleState.signedIn = Boolean(payload.authenticated ?? googleState.profile);
+  googleState.lastSync = payload.lastSync || new Date().toISOString();
+  googleState.services = {
+    calendar: Boolean(payload.calendar),
+    tasks: Boolean(payload.tasks),
+    gmail: Boolean(payload.gmail),
+    fit: false
+  };
+
+  if (payload.calendar?.events) {
+    renderItemList(
+      "calendar-event-list",
+      payload.calendar.events.slice(0, 6).map((event) => ({
+        title: event.summary || "Untitled event",
+        subtitle: event.location || event.calendarName || "Google Calendar",
+        tag: event.startLabel || formatRelativeTime(event.start),
+        mono: true
+      })),
+      "No events found"
+    );
+    setZoneHeader("calendar", {
+      summary: "Google Calendar events synced live",
+      pill: `${payload.calendar.events.length} synced`,
+      overview: [
+        [payload.calendar.nextStart || "--", "next event"],
+        [String(payload.calendar.events.length), "upcoming"],
+        [payload.calendar.primaryCalendarName || "Calendar", "source"]
+      ]
+    });
+  }
+
+  if (payload.tasks?.items) {
+    renderItemList(
+      "tasks-live-list",
+      payload.tasks.items.slice(0, 6).map((task) => ({
+        title: task.title || "Untitled task",
+        subtitle: task.listTitle || "Google Tasks",
+        tag: task.dueLabel || (task.status === "completed" ? "Done" : "Open")
+      })),
+      "No tasks found"
+    );
+    setZoneHeader("tasks", {
+      summary: "Google Tasks lists synced live",
+      pill: `${payload.tasks.openCount ?? payload.tasks.items.length} open`,
+      overview: [
+        [String(payload.tasks.openCount ?? payload.tasks.items.length), "open tasks"],
+        [String(payload.tasks.completedToday ?? 0), "done today"],
+        [payload.tasks.primaryListTitle || "Tasks", "source"]
+      ]
+    });
+  }
+
+  if (payload.gmail?.messages) {
+    renderItemList(
+      "gmail-live-list",
+      payload.gmail.messages.slice(0, 6).map((message) => ({
+        title: message.from || "Unknown sender",
+        subtitle: message.subject || "(no subject)",
+        tag: message.receivedLabel || formatRelativeTime(message.internalDate),
+        mono: true
+      })),
+      "No messages found"
+    );
+    setZoneHeader("email", {
+      summary: "Gmail inbox synced live",
+      pill: `${payload.gmail.unreadCount ?? payload.gmail.messages.length} unread`,
+      overview: [
+        [String(payload.gmail.priorityCount ?? 0), "priority"],
+        [String(payload.gmail.unreadCount ?? payload.gmail.messages.length), "unread"],
+        ["Gmail", "source"]
+      ]
+    });
+  }
+
+  renderGoogleAuthState();
+}
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Request failed with ${response.status}`);
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+function ensureGoogleCodeClient() {
+  if (googleState.codeClient || !googleState.configured || !window.google?.accounts?.oauth2) return googleState.codeClient;
+  googleState.codeClient = window.google.accounts.oauth2.initCodeClient({
+    client_id: GOOGLE_CONFIG.clientId,
+    scope: GOOGLE_CONFIG.scopes.join(" "),
+    ux_mode: "popup",
+    callback: async (response) => {
+      if (!response.code) {
+        googleState.loading = false;
+        googleState.error = "Google did not return an authorization code.";
+        renderGoogleAuthState();
+        return;
+      }
+      try {
+        await fetchJson(GOOGLE_CONFIG.authCodeEndpoint, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XmlHttpRequest"
+          },
+          body: JSON.stringify({
+            code: response.code,
+            scope: GOOGLE_CONFIG.scopes.join(" "),
+            redirectUri: window.location.origin
+          })
+        });
+        googleState.error = "";
+        await refreshGoogleBootstrap();
+      } catch (error) {
+        googleState.error = error.message;
+      } finally {
+        googleState.loading = false;
+        renderGoogleAuthState();
+      }
+    }
+  });
+  googleState.clientReady = true;
+  return googleState.codeClient;
+}
+
+async function hydrateGoogleSession() {
+  if (!googleState.configured || window.location.protocol === "file:") {
+    renderGoogleAuthState();
+    return;
+  }
+  try {
+    const session = await fetchJson(GOOGLE_CONFIG.sessionEndpoint);
+    if (session?.authenticated) {
+      googleState.signedIn = true;
+      googleState.profile = session.profile || null;
+      googleState.lastSync = session.lastSync || null;
+      googleState.services = {
+        calendar: Boolean(session.services?.calendar),
+        tasks: Boolean(session.services?.tasks),
+        gmail: Boolean(session.services?.gmail),
+        fit: false
+      };
+      await refreshGoogleBootstrap(false);
+    } else {
+      renderGoogleAuthState();
+    }
+  } catch (error) {
+    googleState.error = error.message;
+    renderGoogleAuthState();
+  }
+}
+
+async function refreshGoogleBootstrap(showLoading = true) {
+  if (!googleState.configured) return;
+  if (showLoading) {
+    googleState.loading = true;
+    renderGoogleAuthState();
+  }
+  try {
+    const payload = await fetchJson(GOOGLE_CONFIG.bootstrapEndpoint);
+    googleState.error = "";
+    applyGoogleBootstrap(payload);
+  } catch (error) {
+    googleState.error = error.message;
+  } finally {
+    googleState.loading = false;
+    renderGoogleAuthState();
+  }
+}
+
+function connectGoogle() {
+  if (!googleState.configured) {
+    googleState.error = "Missing Google client ID. Update google-config.js first.";
+    renderGoogleAuthState();
+    return;
+  }
+  if (window.location.protocol === "file:") {
+    googleState.error = "Serve the app over http://localhost or https before using Google OAuth.";
+    renderGoogleAuthState();
+    return;
+  }
+  if (!window.google?.accounts?.oauth2) {
+    googleState.error = "Google Identity Services has not loaded yet.";
+    renderGoogleAuthState();
+    return;
+  }
+  googleState.loading = true;
+  googleState.error = "";
+  renderGoogleAuthState();
+  const client = ensureGoogleCodeClient();
+  client.requestCode();
+}
+
+async function disconnectGoogle() {
+  if (!googleState.signedIn) return;
+  googleState.loading = true;
+  renderGoogleAuthState();
+  try {
+    await fetchJson(GOOGLE_CONFIG.logoutEndpoint, { method: "POST" });
+    googleState.signedIn = false;
+    googleState.profile = null;
+    googleState.lastSync = null;
+    googleState.services = { calendar: false, tasks: false, gmail: false, fit: false };
+    googleState.error = "";
+  } catch (error) {
+    googleState.error = error.message;
+  } finally {
+    googleState.loading = false;
+    renderGoogleAuthState();
+  }
+}
+
+function updateClock() {
+  const now = new Date();
+  clockEl.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function createOverview(zone) {
+  const strip = document.createElement("div");
+  strip.className = "overview-strip";
+  zone.overview.forEach(([value, label]) => {
+    const stat = document.createElement("div");
+    stat.className = "overview-stat";
+    stat.innerHTML = `<strong class="mono">${value}</strong><span>${label}</span>`;
+    strip.appendChild(stat);
+  });
+  return strip;
+}
+
+function renderWorldCards() {
+  const overviewCard = document.createElement("section");
+  overviewCard.className = "world-card";
+  overviewCard.style.left = "160px";
+  overviewCard.style.top = "90px";
+  overviewCard.style.width = "900px";
+  overviewCard.style.height = "170px";
+  overviewCard.innerHTML = `
+    <div class="brand-kicker">Life Dashboard</div>
+    <h1>Spatial dashboard, not a scroll page.</h1>
+    <p>Pan freely, zoom with intent, and pause near a zone to let the camera settle into the data you were already approaching.</p>
+  `;
+  world.appendChild(overviewCard);
+
+  const statusCard = document.createElement("section");
+  statusCard.className = "world-card small";
+  statusCard.style.left = "2860px";
+  statusCard.style.top = "90px";
+  statusCard.style.width = "420px";
+  statusCard.style.height = "170px";
+  statusCard.innerHTML = `
+    <div class="status-panel">
+      <div class="status-line"><span>Time</span><strong class="mono" id="clock">--:--</strong></div>
+      <div class="status-line"><span>View</span><span id="view-state">Overview</span></div>
+      <div class="status-line"><span>Focus</span><span id="focus-zone">Canvas map</span></div>
+      <div class="status-line"><span>Zoom</span><span class="mono" id="zoom-readout">0.00x</span></div>
+      <div class="status-line"><span>Google</span><span id="google-connection-status">Not connected</span></div>
+      <div class="status-line"><span>Account</span><span id="google-account-label">Demo mode</span></div>
+    </div>
+  `;
+  world.appendChild(statusCard);
+}
+
+function syncStatusRefs() {
+  clockEl = document.getElementById("clock");
+  viewStateEl = document.getElementById("view-state");
+  focusZoneEl = document.getElementById("focus-zone");
+  zoomReadoutEl = document.getElementById("zoom-readout");
+}
+
+function renderZones() {
+  world.innerHTML = "";
+  renderWorldCards();
+
+  zoneData.forEach((zone) => {
+    const clone = zoneTemplate.content.firstElementChild.cloneNode(true);
+    clone.dataset.zoneId = zone.id;
+    clone.style.left = zone.x + "px";
+    clone.style.top = zone.y + "px";
+    clone.style.width = zone.width + "px";
+    clone.style.height = zone.height + "px";
+
+    if (settings.hiddenZones.includes(zone.id)) {
+      clone.classList.add("hidden");
+    }
+
+    clone.querySelector("h2").textContent = zone.label;
+    clone.querySelector(".zone-summary").textContent = zone.summary;
+    clone.querySelector(".zone-pill").textContent = zone.pill;
+
+    const body = clone.querySelector(".zone-body");
+    body.appendChild(createOverview(zone));
+
+    const detailWrap = document.createElement("div");
+    detailWrap.innerHTML = zone.detail;
+    while (detailWrap.firstChild) body.appendChild(detailWrap.firstChild);
+
+    clone.addEventListener("dblclick", () => {
+      focusZone(zone);
+    });
+
+    world.appendChild(clone);
+  });
+
+  bindSettingsControls();
+  restoreNotes();
+  syncStatusRefs();
+}
+
+function bindSettingsControls() {
+  const toggles = document.getElementById("zone-toggles");
+  if (toggles) {
+    toggles.innerHTML = "";
+    zoneData
+      .filter((zone) => zone.id !== "settings")
+      .forEach((zone) => {
+        const row = document.createElement("label");
+        row.className = "toggle-row";
+        row.innerHTML = `<span>${zone.label}</span>`;
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.className = "switch";
+        input.checked = !settings.hiddenZones.includes(zone.id);
+        input.addEventListener("change", () => {
+          if (input.checked) {
+            settings.hiddenZones = settings.hiddenZones.filter((id) => id !== zone.id);
+          } else {
+            settings.hiddenZones = [...new Set([...settings.hiddenZones, zone.id])];
+          }
+          saveSettings();
+          renderZones();
+        });
+        row.appendChild(input);
+        toggles.appendChild(row);
+      });
+  }
+
+  const snapDelay = document.getElementById("snap-delay");
+  const snapStrength = document.getElementById("snap-strength");
+  const minScale = document.getElementById("max-zoom-out");
+  const googleConnectBtn = document.getElementById("google-connect-btn");
+  const googleRefreshBtn = document.getElementById("google-refresh-btn");
+  const googleSignoutBtn = document.getElementById("google-signout-btn");
+
+  if (snapDelay) {
+    snapDelay.value = settings.snapDelay;
+    snapDelay.addEventListener("input", () => {
+      settings.snapDelay = Number(snapDelay.value);
+      saveSettings();
+    });
+  }
+
+  if (snapStrength) {
+    snapStrength.value = settings.snapStrength;
+    snapStrength.addEventListener("input", () => {
+      settings.snapStrength = Number(snapStrength.value);
+      saveSettings();
+    });
+  }
+
+  if (minScale) {
+    minScale.value = settings.minScale;
+    minScale.addEventListener("input", () => {
+      settings.minScale = Number(minScale.value);
+      if (camera.targetScale < settings.minScale) camera.targetScale = settings.minScale;
+      if (camera.scale < settings.minScale) camera.scale = settings.minScale;
+      clampCameraTargets();
+      saveSettings();
+    });
+  }
+
+  const notesArea = document.getElementById("notes-area");
+  if (notesArea) {
+    notesArea.addEventListener("input", () => {
+      localStorage.setItem(NOTES_KEY, notesArea.value);
+    });
+  }
+
+  if (googleConnectBtn) {
+    googleConnectBtn.addEventListener("click", connectGoogle);
+  }
+  if (googleRefreshBtn) {
+    googleRefreshBtn.addEventListener("click", () => refreshGoogleBootstrap(true));
+  }
+  if (googleSignoutBtn) {
+    googleSignoutBtn.addEventListener("click", disconnectGoogle);
+  }
+
+  renderGoogleAuthState();
+}
+
+function restoreNotes() {
+  const notesArea = document.getElementById("notes-area");
+  if (notesArea) notesArea.value = localStorage.getItem(NOTES_KEY) || "";
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function clampCameraTargets() {
+  camera.targetScale = clamp(camera.targetScale, settings.minScale, settings.maxScale);
+  const scaledWidth = WORLD.width * camera.targetScale;
+  const scaledHeight = WORLD.height * camera.targetScale;
+  const centeredX = (viewport.clientWidth - scaledWidth) / 2;
+  const centeredY = (viewport.clientHeight - scaledHeight) / 2;
+  const minX = scaledWidth <= viewport.clientWidth
+    ? centeredX - PAN_PADDING
+    : viewport.clientWidth - scaledWidth - PAN_PADDING;
+  const maxX = scaledWidth <= viewport.clientWidth
+    ? centeredX + PAN_PADDING
+    : PAN_PADDING;
+  const minY = scaledHeight <= viewport.clientHeight
+    ? centeredY - PAN_PADDING * 0.6
+    : viewport.clientHeight - scaledHeight - PAN_PADDING * 0.6;
+  const maxY = scaledHeight <= viewport.clientHeight
+    ? centeredY + PAN_PADDING * 0.6
+    : PAN_PADDING * 0.6;
+  camera.targetX = clamp(camera.targetX, minX, maxX);
+  camera.targetY = clamp(camera.targetY, minY, maxY);
+}
+
+function setCameraFromOverview() {
+  const scaleX = viewport.clientWidth / WORLD.width;
+  const scaleY = viewport.clientHeight / WORLD.height;
+  const overviewScale = Math.max(settings.minScale, Math.min(scaleX, scaleY) * 0.95);
+  camera.scale = overviewScale;
+  camera.targetScale = overviewScale;
+  camera.x = (viewport.clientWidth - WORLD.width * overviewScale) / 2;
+  camera.y = (viewport.clientHeight - WORLD.height * overviewScale) / 2;
+  camera.targetX = camera.x;
+  camera.targetY = camera.y;
+}
+
+function getOverviewTarget() {
+  const scaleX = viewport.clientWidth / WORLD.width;
+  const scaleY = viewport.clientHeight / WORLD.height;
+  const scale = Math.max(settings.minScale, Math.min(scaleX, scaleY) * 0.95);
+  return {
+    scale,
+    x: (viewport.clientWidth - WORLD.width * scale) / 2,
+    y: (viewport.clientHeight - WORLD.height * scale) / 2
+  };
+}
+
+function screenToWorld(clientX, clientY) {
+  const rect = viewport.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left - camera.targetX) / camera.targetScale,
+    y: (clientY - rect.top - camera.targetY) / camera.targetScale
+  };
+}
+
+function canScrollElement(element, deltaY) {
+  if (!element) return false;
+  const canScroll = element.scrollHeight > element.clientHeight + 1;
+  if (!canScroll) return false;
+  if (deltaY < 0) return element.scrollTop > 0;
+  if (deltaY > 0) return element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+  return false;
+}
+
+function shouldLetInnerContentScroll(target, deltaY) {
+  let current = target;
+  while (current && current !== viewport) {
+    if (current.matches && current.matches("textarea, .zone-body")) {
+      if (canScrollElement(current, deltaY)) return true;
+    }
+    current = current.parentElement;
+  }
+  return false;
+}
+
+function getWheelSessionMode(target, deltaY, now) {
+  const sessionExpired = now - wheelSession.lastAt > 140;
+  if (sessionExpired) wheelSession.mode = null;
+
+  if (!wheelSession.mode) {
+    wheelSession.mode = shouldLetInnerContentScroll(target, deltaY) ? "inner" : "canvas";
+  }
+
+  wheelSession.lastAt = now;
+  return wheelSession.mode;
+}
+
+function zoomAt(clientX, clientY, factor) {
+  const before = screenToWorld(clientX, clientY);
+  camera.targetScale = clamp(camera.targetScale * factor, settings.minScale, settings.maxScale);
+  camera.targetX = clientX - before.x * camera.targetScale;
+  camera.targetY = clientY - before.y * camera.targetScale;
+  clampCameraTargets();
+  camera.lastInputAt = performance.now();
+  camera.activeSnapZone = null;
+}
+
+function focusZone(zone) {
+  const margin = 48;
+  const scaleX = (viewport.clientWidth - margin * 2) / zone.width;
+  const scaleY = (viewport.clientHeight - margin * 2) / zone.height;
+  const nextScale = clamp(Math.min(scaleX, scaleY, zone.snapZoom), settings.minScale, settings.maxScale);
+  camera.targetScale = nextScale;
+  camera.targetX = viewport.clientWidth / 2 - (zone.x + zone.width / 2) * nextScale;
+  camera.targetY = viewport.clientHeight / 2 - (zone.y + zone.height / 2) * nextScale;
+  clampCameraTargets();
+  camera.lastInputAt = performance.now();
+  camera.activeSnapZone = zone.id;
+}
+
+function getZoneStage(zone) {
+  if (camera.scale >= zone.snapZoom * 0.92) return "detail";
+  if (camera.scale >= zone.snapZoom * 0.62) return "preview";
+  return "overview";
+}
+
+function updateZoneStates() {
+  let focusLabel = "Canvas map";
+  let activeZoneId = null;
+  let bestScore = Infinity;
+
+  zoneData.forEach((zone) => {
+    const element = world.querySelector(`[data-zone-id="${zone.id}"]`);
+    if (!element || element.classList.contains("hidden")) return;
+
+    const stage = getZoneStage(zone);
+    element.dataset.stage = stage;
+
+    const centerX = (zone.x + zone.width / 2) * camera.scale + camera.x;
+    const centerY = (zone.y + zone.height / 2) * camera.scale + camera.y;
+    const dx = centerX - viewport.clientWidth / 2;
+    const dy = centerY - viewport.clientHeight / 2;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < bestScore) {
+      bestScore = dist;
+      activeZoneId = zone.id;
+      focusLabel = zone.label;
+    }
+  });
+
+  zoneData.forEach((zone) => {
+    const element = world.querySelector(`[data-zone-id="${zone.id}"]`);
+    if (!element) return;
+    element.classList.toggle("active", zone.id === activeZoneId);
+  });
+
+  focusZoneEl.textContent = focusLabel;
+  zoomReadoutEl.textContent = camera.scale.toFixed(2) + "x";
+  viewStateEl.textContent = camera.scale < 0.7 ? "Overview" : camera.scale < 1.05 ? "Preview" : "Detail";
+}
+
+function trySoftSnap(now) {
+  if (camera.dragging) return;
+  if (now - camera.lastInputAt < settings.snapDelay) return;
+
+  const overviewTarget = getOverviewTarget();
+  const isNearMinZoom = camera.targetScale <= settings.minScale + 0.035;
+  const overviewDistance = Math.hypot(camera.targetX - overviewTarget.x, camera.targetY - overviewTarget.y);
+  if (isNearMinZoom) {
+    if (camera.activeSnapZone !== "__overview__" || overviewDistance > 3) {
+      camera.targetScale += (overviewTarget.scale - camera.targetScale) * (settings.snapStrength + 0.08);
+      camera.targetX += (overviewTarget.x - camera.targetX) * (settings.snapStrength + 0.08);
+      camera.targetY += (overviewTarget.y - camera.targetY) * (settings.snapStrength + 0.08);
+      clampCameraTargets();
+      if (Math.abs(overviewTarget.scale - camera.targetScale) < 0.01 && overviewDistance < 8) {
+        camera.activeSnapZone = "__overview__";
+      }
+    }
+    return;
+  }
+
+  const visibleZones = zoneData.filter((zone) => !settings.hiddenZones.includes(zone.id));
+  let bestZone = null;
+  let bestScore = Infinity;
+
+  visibleZones.forEach((zone) => {
+    const centerX = (zone.x + zone.width / 2) * camera.targetScale + camera.targetX;
+    const centerY = (zone.y + zone.height / 2) * camera.targetScale + camera.targetY;
+    const dx = centerX - viewport.clientWidth / 2;
+    const dy = centerY - viewport.clientHeight / 2;
+    const dist = Math.hypot(dx, dy);
+    const zoomDiff = Math.abs(camera.targetScale - zone.snapZoom);
+    const score = dist + zoomDiff * 650;
+    if (score < bestScore) {
+      bestScore = score;
+      bestZone = zone;
+    }
+  });
+
+  if (!bestZone) return;
+
+  const intendedScale = clamp(bestZone.snapZoom, settings.minScale, settings.maxScale);
+  const intendedX = viewport.clientWidth / 2 - (bestZone.x + bestZone.width / 2) * intendedScale;
+  const intendedY = viewport.clientHeight / 2 - (bestZone.y + bestZone.height / 2) * intendedScale;
+  const targetDistance = Math.hypot(intendedX - camera.targetX, intendedY - camera.targetY);
+  const targetZoomDiff = Math.abs(intendedScale - camera.targetScale);
+
+  if (camera.activeSnapZone === bestZone.id && targetDistance < 3 && targetZoomDiff < 0.005) return;
+
+  const snapForce = settings.snapStrength + 0.08;
+  camera.targetScale += (intendedScale - camera.targetScale) * snapForce;
+  camera.targetX += (intendedX - camera.targetX) * snapForce;
+  camera.targetY += (intendedY - camera.targetY) * snapForce;
+  clampCameraTargets();
+
+  if (Math.abs(intendedScale - camera.targetScale) < 0.03 && Math.hypot(intendedX - camera.targetX, intendedY - camera.targetY) < 18) {
+    camera.activeSnapZone = bestZone.id;
+  }
+}
+
+function animate(now) {
+  trySoftSnap(now);
+
+  camera.x += (camera.targetX - camera.x) * 0.16;
+  camera.y += (camera.targetY - camera.y) * 0.16;
+  camera.scale += (camera.targetScale - camera.scale) * 0.16;
+
+  world.style.transform = `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;
+  updateZoneStates();
+  requestAnimationFrame(animate);
+}
+
+let dragStart = null;
+
+viewport.addEventListener("pointerdown", (event) => {
+  if (event.target.closest("input, textarea, button, label")) return;
+  viewport.setPointerCapture(event.pointerId);
+  camera.dragging = true;
+  camera.movedDuringDrag = false;
+  camera.activeSnapZone = null;
+  dragStart = {
+    x: event.clientX,
+    y: event.clientY,
+    targetX: camera.targetX,
+    targetY: camera.targetY
+  };
+  viewport.classList.add("dragging");
+});
+
+viewport.addEventListener("pointermove", (event) => {
+  if (!camera.dragging || !dragStart) return;
+  const dx = event.clientX - dragStart.x;
+  const dy = event.clientY - dragStart.y;
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) camera.movedDuringDrag = true;
+  camera.targetX = dragStart.targetX + dx;
+  camera.targetY = dragStart.targetY + dy;
+  clampCameraTargets();
+  camera.lastInputAt = performance.now();
+});
+
+function endDrag() {
+  camera.dragging = false;
+  dragStart = null;
+  viewport.classList.remove("dragging");
+  camera.lastInputAt = performance.now();
+}
+
+viewport.addEventListener("pointerup", endDrag);
+viewport.addEventListener("pointercancel", endDrag);
+viewport.addEventListener("wheel", (event) => {
+  const mode = getWheelSessionMode(event.target, event.deltaY, performance.now());
+  if (mode === "inner") {
+    camera.lastInputAt = performance.now();
+    camera.activeSnapZone = null;
+    return;
+  }
+  event.preventDefault();
+  const factor = event.deltaY > 0 ? 0.92 : 1.08;
+  zoomAt(event.clientX, event.clientY, factor);
+}, { passive: false });
+
+viewport.addEventListener("dblclick", (event) => {
+  if (event.target.closest(".zone")) return;
+  zoomAt(event.clientX, event.clientY, 1.18);
+});
+
+document.getElementById("reset-view").addEventListener("click", () => {
+  setCameraFromOverview();
+  camera.activeSnapZone = null;
+});
+
+window.addEventListener("resize", () => {
+  setCameraFromOverview();
+});
+
+loadSettings();
+renderZones();
+setCameraFromOverview();
+updateClock();
+renderGoogleAuthState();
+hydrateGoogleSession();
+setInterval(updateClock, 10000);
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
