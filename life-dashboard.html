@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="google-config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --bg: #081018;
@@ -608,6 +609,27 @@ input[type="range"] {
   cursor: pointer;
 }
 
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  margin-bottom: 16px;
+}
+
+.chart-container.small {
+  height: 160px;
+}
+
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border: 1px solid rgba(158, 188, 214, 0.08);
+}
+
 .zone.hidden {
   display: none;
 }
@@ -700,6 +722,11 @@ const zoneData = [
         <div class="metric-card"><div class="metric-label">Completed</div><div class="metric-value">12</div><div class="metric-sub">Best day this week</div></div>
         <div class="metric-card"><div class="metric-label">Focus block</div><div class="metric-value mono">2:30</div><div class="metric-sub">Deep work left</div></div>
       </div>
+      <div class="chart-container small preview-only">
+        <div class="chart-wrapper">
+          <canvas id="tasks-momentum-chart"></canvas>
+        </div>
+      </div>
       <div class="panel-grid two preview-only">
         <div class="panel">
           <div class="panel-title">In progress</div>
@@ -773,6 +800,11 @@ const zoneData = [
         <div class="metric-card"><div class="metric-label">Remaining</div><div class="metric-value mono">$1,358</div><div class="metric-sub">57% of month left</div></div>
         <div class="metric-card"><div class="metric-label">Drift</div><div class="metric-value">+3%</div><div class="metric-sub">Slightly ahead</div></div>
       </div>
+      <div class="chart-container preview-only">
+        <div class="chart-wrapper">
+          <canvas id="finance-pie-chart"></canvas>
+        </div>
+      </div>
       <div class="panel-grid two preview-only">
         <div class="panel">
           <div class="panel-title">Category pacing</div>
@@ -819,6 +851,11 @@ const zoneData = [
         <div class="metric-card"><div class="metric-label">Steps</div><div class="metric-value mono">7,482</div><div class="metric-sub">12% above average</div></div>
         <div class="metric-card"><div class="metric-label">Sleep</div><div class="metric-value mono">7h 22m</div><div class="metric-sub">18 min above baseline</div></div>
         <div class="metric-card"><div class="metric-label">Resting HR</div><div class="metric-value">72</div><div class="metric-sub">Down 3 bpm</div></div>
+      </div>
+      <div class="chart-container small preview-only">
+        <div class="chart-wrapper">
+          <canvas id="health-rings-chart"></canvas>
+        </div>
       </div>
       <div class="panel-grid two preview-only">
         <div class="panel">
@@ -1901,6 +1938,235 @@ document.getElementById("reset-view").addEventListener("click", () => {
   setCameraFromOverview();
   camera.activeSnapZone = null;
 });
+
+// Chart.js initialization and management
+const charts = {};
+
+function initializeCharts() {
+  // Chart.js theme configuration matching dashboard colors
+  const chartDefaults = {
+    font: {
+      family: '"Space Grotesk", sans-serif',
+      size: 11,
+      weight: '500'
+    },
+    color: 'rgba(158, 188, 214, 0.7)'
+  };
+
+  Chart.defaults.set(chartDefaults);
+
+  // Finance Pie Chart
+  setTimeout(() => {
+    const financeCtx = document.getElementById("finance-pie-chart");
+    if (financeCtx && !charts.finance) {
+      charts.finance = new Chart(financeCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Housing', 'Food', 'Transport', 'Entertainment'],
+          datasets: [{
+            data: [1123, 425, 205, 89],
+            backgroundColor: [
+              '#7bc6ff',
+              '#8be28b',
+              '#ffd36c',
+              '#a5a3ff'
+            ],
+            borderColor: 'rgba(6, 11, 18, 0.84)',
+            borderWidth: 3,
+            borderRadius: 6,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 12,
+                font: { size: 11, weight: '500' },
+                color: 'rgba(158, 188, 214, 0.8)',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(6, 11, 18, 0.95)',
+              titleColor: '#eef5fb',
+              bodyColor: 'rgba(158, 188, 214, 0.9)',
+              borderColor: 'rgba(158, 188, 214, 0.3)',
+              borderWidth: 1,
+              padding: 10,
+              titleFont: { size: 12, weight: '600' },
+              bodyFont: { size: 11 },
+              displayColors: true,
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percent = ((value / total) * 100).toFixed(1);
+                  return `${label}: $${value} (${percent}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }, 100);
+
+  // Health Rings Chart (Doughnut with multiple rings effect)
+  setTimeout(() => {
+    const healthCtx = document.getElementById("health-rings-chart");
+    if (healthCtx && !charts.health) {
+      charts.health = new Chart(healthCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Move', 'Exercise', 'Stand'],
+          datasets: [{
+            data: [74, 63, 88],
+            backgroundColor: [
+              '#7bc6ff',
+              '#8be28b',
+              '#a5a3ff'
+            ],
+            borderColor: 'rgba(6, 11, 18, 0.84)',
+            borderWidth: 4,
+            borderRadius: 8,
+            spacing: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          circumference: 360,
+          rotation: 0,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                padding: 12,
+                font: { size: 10, weight: '500' },
+                color: 'rgba(158, 188, 214, 0.8)',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(6, 11, 18, 0.95)',
+              titleColor: '#eef5fb',
+              bodyColor: 'rgba(158, 188, 214, 0.9)',
+              borderColor: 'rgba(158, 188, 214, 0.3)',
+              borderWidth: 1,
+              padding: 10,
+              titleFont: { size: 12, weight: '600' },
+              bodyFont: { size: 11 },
+              callbacks: {
+                label: function(context) {
+                  return `${context.label}: ${context.parsed}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }, 150);
+
+  // Tasks Momentum Chart (Bar chart)
+  setTimeout(() => {
+    const tasksCtx = document.getElementById("tasks-momentum-chart");
+    if (tasksCtx && !charts.tasks) {
+      charts.tasks = new Chart(tasksCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Product', 'Admin', 'Personal'],
+          datasets: [{
+            label: 'Momentum',
+            data: [88, 43, 61],
+            backgroundColor: [
+              '#7bc6ff',
+              '#ffd36c',
+              '#8be28b'
+            ],
+            borderColor: [
+              'rgba(123, 198, 255, 0.3)',
+              'rgba(255, 211, 108, 0.3)',
+              'rgba(139, 226, 139, 0.3)'
+            ],
+            borderWidth: 1,
+            borderRadius: 8,
+            hoverBackgroundColor: [
+              '#8fd2ff',
+              '#ffe082',
+              '#9aef9a'
+            ]
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(6, 11, 18, 0.95)',
+              titleColor: '#eef5fb',
+              bodyColor: 'rgba(158, 188, 214, 0.9)',
+              borderColor: 'rgba(158, 188, 214, 0.3)',
+              borderWidth: 1,
+              padding: 10,
+              titleFont: { size: 12, weight: '600' },
+              bodyFont: { size: 11 },
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.x}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              grid: {
+                color: 'rgba(158, 188, 214, 0.06)',
+                drawBorder: false
+              },
+              ticks: {
+                color: 'rgba(158, 188, 214, 0.6)',
+                font: { size: 10 },
+                callback: function(value) {
+                  return value + '%';
+                }
+              }
+            },
+            y: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: 'rgba(158, 188, 214, 0.8)',
+                font: { size: 11, weight: '500' }
+              }
+            }
+          }
+        }
+      });
+    }
+  }, 200);
+}
+
+// Initialize charts when zones are rendered
+const originalRenderZones = renderZones;
+renderZones = function() {
+  originalRenderZones.call(this);
+  setTimeout(initializeCharts, 50);
+};
 
 window.addEventListener("resize", () => {
   setCameraFromOverview();
